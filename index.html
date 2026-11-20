@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eastern Seaboard: Indigenous Population &amp; 13 Colonies (1585–1776)</title>
+  <style>
+    :root {
+      --bg-dark: #0b1322;
+      --bg-panel: #152033;
+      --bg-card: #1e2c44;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-indigenous: #38bdf8;
+      --accent-colonial: #f59e0b;
+      --accent-conflict: #f43f5e;
+      --border-color: #2d3e59;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header {
+      background: linear-gradient(180deg, #070d17 0%, var(--bg-dark) 100%);
+      padding: 0.85rem 1.4rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .title-group h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #f8fafc;
+    }
+
+    .title-group p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      font-size: 0.78rem;
+      background: var(--bg-panel);
+      padding: 0.45rem 0.8rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .dot.indigenous {
+      background-color: var(--accent-indigenous);
+      box-shadow: 0 0 8px var(--accent-indigenous);
+    }
+
+    .dot.colonial {
+      background-color: rgba(245, 158, 11, 0.75);
+      border: 1px solid #fbbf24;
+      border-radius: 3px;
+    }
+
+    .dot.event {
+      background-color: var(--accent-conflict);
+      box-shadow: 0 0 8px var(--accent-conflict);
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 330px;
+      min-height: 0;
+    }
+
+    @media (max-width: 960px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .map-stage {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background: #0a1628;
+      border-right: 1px solid var(--border-color);
+      min-height: 620px;
+    }
+
+    .canvas-container {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      min-height: 550px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    .year-overlay {
+      position: absolute;
+      top: 1rem;
+      left: 1.15rem;
+      pointer-events: none;
+      background: rgba(11, 19, 34, 0.8);
+      backdrop-filter: blur(4px);
+      padding: 0.6rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid rgba(51, 65, 85, 0.75);
+    }
+
+    .year-display {
+      font-size: 2.75rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: #f8fafc;
+    }
+
+    .era-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent-indigenous);
+      margin-top: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .map-toggles {
+      position: absolute;
+      bottom: 0.85rem;
+      left: 1.15rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      z-index: 10;
+    }
+
+    .toggle-pill {
+      background: rgba(21, 32, 51, 0.92);
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      font-size: 0.75rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+    }
+
+    .toggle-pill.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: #38bdf8;
+      color: #f8fafc;
+      font-weight: 600;
+    }
+
+    .tooltip {
+      position: absolute;
+      background: rgba(11, 19, 34, 0.96);
+      border: 1px solid #475569;
+      border-radius: 8px;
+      padding: 0.7rem 0.9rem;
+      font-size: 0.8rem;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -115%);
+      transition: opacity 0.15s ease;
+      z-index: 25;
+      min-width: 210px;
+      max-width: 270px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    }
+
+    .tooltip h4 {
+      color: #f8fafc;
+      font-size: 0.88rem;
+      margin-bottom: 0.3rem;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 0.25rem;
+    }
+
+    .tooltip p {
+      color: #cbd5e1;
+      margin: 0.2rem 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .tooltip span.val {
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .timeline-controls {
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border-color);
+      padding: 0.9rem 1.35rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .controls-top {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    button.ctrl-btn {
+      background: #283852;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      padding: 0.48rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.83rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: background 0.15s;
+    }
+
+    button.ctrl-btn:hover {
+      background: #364b6e;
+    }
+
+    button.ctrl-btn.primary {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+
+    button.ctrl-btn.primary:hover {
+      background: #0369a1;
+    }
+
+    .slider-wrap {
+      flex: 1;
+      min-width: 200px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-indigenous);
+      cursor: pointer;
+      height: 6px;
+    }
+
+    .milestones {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.35rem;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .milestone-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.73rem;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+
+    .milestone-btn:hover, .milestone-btn.active {
+      color: var(--accent-indigenous);
+      background: rgba(56, 189, 248, 0.14);
+      font-weight: 600;
+    }
+
+    .sidebar {
+      background: var(--bg-panel);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      overflow-y: auto;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.75rem;
+    }
+
+    .stat-card .label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+
+    .stat-card .value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-top: 0.18rem;
+    }
+
+    .stat-card .sub {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.16rem;
+    }
+
+    .val-ind { color: var(--accent-indigenous); }
+    .val-col { color: var(--accent-colonial); }
+    .val-loss { color: #fb7185; }
+
+    .narrative-box {
+      background: var(--bg-card);
+      border-left: 3px solid var(--accent-indigenous);
+      border-radius: 0 8px 8px 0;
+      padding: 0.85rem;
+    }
+
+    .narrative-box h3 {
+      font-size: 0.9rem;
+      margin-bottom: 0.32rem;
+      color: #f8fafc;
+    }
+
+    .narrative-box p {
+      font-size: 0.79rem;
+      line-height: 1.46;
+      color: #cbd5e1;
+    }
+
+    .region-bars {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.8rem;
+    }
+
+    .region-bars h4 {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 0.6rem;
+    }
+
+    .bar-row {
+      margin-bottom: 0.55rem;
+    }
+
+    .bar-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .bar-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .bar-track {
+      height: 6px;
+      background: #0b1322;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0284c7, #38bdf8);
+      border-radius: 4px;
+      transition: width 0.2s ease;
+    }
+
+    .methodology-note {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      border-top: 1px solid var(--border-color);
+      padding-top: 0.65rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title-group">
+      <h1>Eastern Seaboard: Indigenous Population &amp; 13 Colonies (1585–1776)</h1>
+      <p>Demographic shift across the Atlantic coast from Roanoke Island to American Independence</p>
+    </div>
+    <div class="legend">
+      <div class="legend-item">
+        <span class="dot indigenous"></span>
+        <span>Indigenous Nation Cluster (Dashed = 1585 Size)</span>
+      </div>
+      <div class="legend-item">
+        <span class="dot colonial"></span>
+        <span>13 Colonies Borders &amp; Settled Territory</span>
+      </div>
+      <div class="legend-item">
+        <span class="dot event"></span>
+        <span>Historic Settlement Site</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="map-stage">
+      <div class="canvas-container" id="canvasContainer">
+        <canvas id="mapCanvas"></canvas>
+        <div class="year-overlay">
+          <div class="year-display" id="yearDisplay">1585</div>
+          <div class="era-label" id="eraLabel">Roanoke Expedition &amp; Early Contact</div>
+        </div>
+        <div class="map-toggles">
+          <button class="toggle-pill active" id="toggleBordersBtn">✓ 13 Colonies Borders</button>
+          <button class="toggle-pill active" id="toggleLabelsBtn">✓ Colony Names</button>
+          <button class="toggle-pill active" id="toggleSitesBtn">✓ Historic Sites</button>
+        </div>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+
+      <div class="timeline-controls">
+        <div class="controls-top">
+          <button class="ctrl-btn primary" id="playPauseBtn">▶ Play Time-Lapse</button>
+          <button class="ctrl-btn" id="resetBtn">↺ Reset (1585)</button>
+          <button class="ctrl-btn" id="speedBtn">Speed: 1x</button>
+          <div class="slider-wrap">
+            <input type="range" id="yearSlider" min="1585" max="1776" value="1585" step="1" />
+            <div class="milestones">
+              <button class="milestone-btn active" data-year="1585">1585 Roanoke</button>
+              <button class="milestone-btn" data-year="1607">1607 Jamestown</button>
+              <button class="milestone-btn" data-year="1620">1620 Plymouth</button>
+              <button class="milestone-btn" data-year="1675">1675 King Philip</button>
+              <button class="milestone-btn" data-year="1733">1733 Georgia</button>
+              <button class="milestone-btn" data-year="1776">1776 Independence</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="label">13 Colonies Region Indigenous</div>
+          <div class="value val-ind" id="statEastInd">~600,000</div>
+          <div class="sub" id="statEastChange">1585 Pre-settlement baseline</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Cumulative Indigenous Decline</div>
+          <div class="value val-loss" id="statDeclinePct">0.0%</div>
+          <div class="sub">Across Eastern Seaboard</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Colonial Settler Population</div>
+          <div class="value val-col" id="statColonial">~110</div>
+          <div class="sub" id="statColSub">Roanoke garrison &amp; outposts</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Established Colonies</div>
+          <div class="value val-col" id="statColCount">0 of 13</div>
+          <div class="sub" id="statColLatest">First permanent: VA (1607)</div>
+        </div>
+      </div>
+
+      <div class="narrative-box">
+        <h3 id="eraTitle">1585–1606: Roanoke Island &amp; Coastal Encounters</h3>
+        <p id="eraDesc">
+          When Ralph Lane's expedition landed on Roanoke Island in 1585, dense Algonquian, Iroquoian, and Muskogean nations thrived along the Atlantic coast and Piedmont. None of the 13 permanent colonies yet existed, though early coastal contact introduced pathogens along trade routes.
+        </p>
+      </div>
+
+      <div class="region-bars">
+        <h4>Eastern Indigenous Nations Remaining</h4>
+        <div id="regionBarsContainer"></div>
+      </div>
+
+      <div class="methodology-note">
+        <strong>Cartographic &amp; Demographic Note:</strong> Colony borders depict historical 1776 colonial boundaries (with Massachusetts including the District of Maine). Hover over any colony or Indigenous population circle for localized details.
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvasContainer');
+    const tooltip = document.getElementById('tooltip');
+
+    const yearSlider = document.getElementById('yearSlider');
+    const yearDisplay = document.getElementById('yearDisplay');
+    const eraLabel = document.getElementById('eraLabel');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const speedBtn = document.getElementById('speedBtn');
+
+    let currentYear = 1585;
+    let isPlaying = false;
+    let speedMultiplier = 1;
+    let lastFrameTime = 0;
+    let hoveredItem = null;
+
+    let showBorders = true;
+    let showLabels = true;
+    let showSites = true;
+
+    document.getElementById('toggleBordersBtn').addEventListener('click', (e) => {
+      showBorders = !showBorders;
+      e.target.classList.toggle('active', showBorders);
+      e.target.textContent = (showBorders ? '✓ ' : '✕ ') + '13 Colonies Borders';
+      drawMap();
+    });
+
+    document.getElementById('toggleLabelsBtn').addEventListener('click', (e) => {
+      showLabels = !showLabels;
+      e.target.classList.toggle('active', showLabels);
+      e.target.textContent = (showLabels ? '✓ ' : '✕ ') + 'Colony Names';
+      drawMap();
+    });
+
+    document.getElementById('toggleSitesBtn').addEventListener('click', (e) => {
+      showSites = !showSites;
+      e.target.classList.toggle('active', showSites);
+      e.target.textContent = (showSites ? '✓ ' : '✕ ') + 'Historic Sites';
+      drawMap();
+    });
+
+    // Tighter Geographic Framing focused directly on the 13 Colonies & Eastern Seaboard so New England is large and clear
+    const GEO = {
+      minLon: -86.5,
+      maxLon: -65.2,
+      minLat: 29.8,
+      maxLat: 47.4
+    };
+
+    function project(lon, lat, bounds) {
+      const xNorm = (lon - GEO.minLon) / (GEO.maxLon - GEO.minLon);
+      const latRad = (lat * Math.PI) / 180;
+      const minLatRad = (GEO.minLat * Math.PI) / 180;
+      const maxLatRad = (GEO.maxLat * Math.PI) / 180;
+      const mercY = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+      const minMercY = Math.log(Math.tan(Math.PI / 4 + minLatRad / 2));
+      const maxMercY = Math.log(Math.tan(Math.PI / 4 + maxLatRad / 2));
+      const yNorm = 1 - (mercY - minMercY) / (maxMercY - minMercY);
+
+      return [
+        bounds.offsetX + xNorm * bounds.mapW,
+        bounds.offsetY + yNorm * bounds.mapH
+      ];
+    }
+
+    function getMapBounds(w, h) {
+      const targetAspect = 0.94;
+      let mapW = w * 0.97;
+      let mapH = h * 0.97;
+      if (mapW / mapH > targetAspect) {
+        mapW = mapH * targetAspect;
+      } else {
+        mapH = mapW / targetAspect;
+      }
+      return {
+        mapW,
+        mapH,
+        offsetX: (w - mapW) / 2,
+        offsetY: (h - mapH) / 2
+      };
+    }
+
+    // Surrounding North American Landmass (Canada, Midwest, Florida) for distinct map context
+    const surroundingLandmass = [
+      // Eastern Canada / Quebec / New Brunswick / Nova Scotia
+      [
+        [-84.0, 47.4], [-65.2, 47.4], [-65.2, 44.5], [-67.1, 45.1], [-69.2, 47.4],
+        [-71.5, 45.0], [-74.8, 45.0], [-76.2, 44.1], [-79.1, 43.3], [-82.5, 42.3],
+        [-83.5, 46.0], [-84.0, 47.4]
+      ],
+      // Midwest / Ohio Country / Trans-Appalachia
+      [
+        [-86.5, 47.4], [-84.0, 47.4], [-83.5, 46.0], [-82.5, 42.3], [-79.1, 43.3],
+        [-79.8, 42.0], [-80.5, 39.7], [-81.9, 38.9], [-82.6, 37.5], [-84.2, 36.0],
+        [-85.5, 35.0], [-86.5, 30.3], [-86.5, 47.4]
+      ],
+      // Northern Florida & Gulf Coast
+      [
+        [-86.5, 30.3], [-85.0, 30.8], [-82.0, 30.4], [-81.4, 30.7], [-81.0, 29.8],
+        [-86.5, 29.8], [-86.5, 30.3]
+      ]
+    ];
+
+    // Great Lakes Polygons (Eastern Lakes visible in frame)
+    const greatLakesGeo = [
+      // Lake Huron
+      [[-84.6, 46.2], [-80.0, 45.2], [-82.4, 43.0], [-83.8, 44.0]],
+      // Lake Erie
+      [[-83.4, 41.7], [-78.9, 42.9], [-79.2, 42.2], [-82.8, 41.4]],
+      // Lake Ontario
+      [[-79.7, 43.3], [-76.1, 44.1], [-76.3, 43.5], [-79.4, 43.2]]
+    ];
+
+    // All 13 Original Colonies with Distinct Polygons, Founding Years, and Clear Label Callouts
+    const thirteenColonies = [
+      {
+        id: 'NH',
+        name: 'New Hampshire',
+        shortName: 'New Hampshire',
+        founded: 1623,
+        pop1776: 82000,
+        labelPos: [-71.65, 43.75],
+        notes: 'Settled at Portsmouth/Dover (1623); Abenaki homeland along the Merrimack and Connecticut valleys.',
+        coords: [
+          [-71.5, 45.0], [-71.0, 45.2], [-70.7, 43.1], [-71.2, 42.7],
+          [-72.5, 42.7], [-72.3, 43.6], [-71.5, 45.0]
+        ]
+      },
+      {
+        id: 'MA',
+        name: 'Massachusetts (incl. Maine)',
+        shortName: 'Massachusetts',
+        founded: 1620,
+        pop1776: 340000,
+        labelPos: [-72.35, 42.38],
+        secondLabelPos: [-69.1, 45.35],
+        secondLabelText: 'MA (Maine)',
+        notes: 'Plymouth (1620) & Mass. Bay (1630); included District of Maine through 1776. Wampanoag, Massachusett & Abenaki lands.',
+        coords: [
+          [-73.5, 42.7], [-71.2, 42.7], [-70.8, 42.8], [-70.6, 42.3], [-69.9, 41.7],
+          [-70.9, 41.5], [-71.4, 42.0], [-73.5, 42.0], [-73.5, 42.7]
+        ],
+        extraCoords: [
+          [-71.0, 45.2], [-69.2, 47.2], [-67.8, 47.0], [-67.0, 44.9], [-68.9, 44.0],
+          [-70.2, 43.6], [-70.7, 43.1], [-71.0, 45.2]
+        ]
+      },
+      {
+        id: 'RI',
+        name: 'Rhode Island',
+        shortName: 'Rhode Island',
+        founded: 1636,
+        pop1776: 59000,
+        labelPos: [-68.9, 41.25],
+        leaderFrom: [-71.45, 41.65],
+        notes: 'Founded by Roger Williams (1636) on Narragansett lands; center of King Philip’s War (1675–76).',
+        coords: [
+          [-71.8, 42.0], [-71.3, 42.0], [-71.1, 41.5], [-71.8, 41.3], [-71.8, 42.0]
+        ]
+      },
+      {
+        id: 'CT',
+        name: 'Connecticut',
+        shortName: 'Connecticut',
+        founded: 1636,
+        pop1776: 200000,
+        labelPos: [-71.0, 40.55],
+        leaderFrom: [-72.65, 41.55],
+        notes: 'Hartford & New Haven (1636–38); site of the Pequot War (1636–37) and Mohegan alliances.',
+        coords: [
+          [-73.5, 42.0], [-71.8, 42.0], [-71.8, 41.3], [-73.6, 41.0], [-73.5, 42.0]
+        ]
+      },
+      {
+        id: 'NY',
+        name: 'New York',
+        founded: 1624,
+        pop1776: 190000,
+        labelPos: [-75.1, 42.85],
+        notes: 'Dutch New Netherland (1624), English New York (1664); bordered and allied/clashed with the Haudenosaunee (Iroquois).',
+        coords: [
+          [-79.1, 43.3], [-76.2, 44.1], [-74.8, 45.0], [-73.3, 45.0], [-73.4, 43.6],
+          [-73.5, 42.7], [-73.5, 42.0], [-73.6, 41.0], [-74.0, 40.6], [-74.7, 41.4],
+          [-75.4, 42.0], [-79.8, 42.0], [-79.1, 43.3]
+        ]
+      },
+      {
+        id: 'NJ',
+        name: 'New Jersey',
+        shortName: 'New Jersey',
+        founded: 1664,
+        pop1776: 130000,
+        labelPos: [-72.6, 39.65],
+        leaderFrom: [-74.45, 40.05],
+        notes: 'Carved from New Netherland (1664); Lenape (Delaware) homeland gradually purchased and displaced.',
+        coords: [
+          [-74.7, 41.4], [-73.9, 41.0], [-74.0, 40.4], [-74.3, 39.4], [-74.9, 38.9],
+          [-75.5, 39.6], [-75.1, 40.2], [-74.7, 41.4]
+        ]
+      },
+      {
+        id: 'PA',
+        name: 'Pennsylvania',
+        founded: 1681,
+        pop1776: 290000,
+        labelPos: [-77.8, 41.0],
+        notes: 'Chartered to William Penn (1681); rapid 18th-c. Scotch-Irish & German settlement pushed Lenape & Shawnee west.',
+        coords: [
+          [-80.5, 42.0], [-75.4, 42.0], [-74.7, 41.4], [-75.1, 40.2], [-75.5, 39.7],
+          [-80.5, 39.7], [-80.5, 42.0]
+        ]
+      },
+      {
+        id: 'DE',
+        name: 'Delaware',
+        shortName: 'Delaware',
+        founded: 1638,
+        pop1776: 40000,
+        labelPos: [-73.2, 38.65],
+        leaderFrom: [-75.4, 38.9],
+        notes: 'New Sweden (1638), Dutch (1655), English Lower Counties (1664); Nanticoke and Lenape territory.',
+        coords: [
+          [-75.7, 39.7], [-75.4, 39.7], [-75.0, 38.5], [-75.7, 38.5], [-75.7, 39.7]
+        ]
+      },
+      {
+        id: 'MD',
+        name: 'Maryland',
+        shortName: 'Maryland',
+        founded: 1634,
+        pop1776: 225000,
+        labelPos: [-77.1, 39.35],
+        notes: 'St. Mary’s City founded (1634) in Piscataway and Yaocomaco lands; major Chesapeake tobacco economy.',
+        coords: [
+          [-79.5, 39.7], [-75.7, 39.7], [-75.7, 38.5], [-75.1, 38.0], [-76.0, 38.0],
+          [-76.4, 38.3], [-77.1, 38.9], [-78.3, 39.6], [-79.5, 39.7]
+        ]
+      },
+      {
+        id: 'VA',
+        name: 'Virginia',
+        founded: 1607,
+        pop1776: 500000,
+        labelPos: [-79.1, 37.6],
+        notes: 'Jamestown (1607); largest 1776 colony. Expanded from Tsenacommacah (Powhatan Confederacy) across the Blue Ridge.',
+        coords: [
+          [-80.5, 39.7], [-79.5, 39.7], [-78.3, 39.6], [-77.1, 38.9], [-76.3, 38.0],
+          [-75.9, 36.55], [-81.7, 36.55], [-82.6, 37.5], [-81.9, 38.9], [-80.5, 39.7]
+        ]
+      },
+      {
+        id: 'NC',
+        name: 'North Carolina',
+        founded: 1653,
+        pop1776: 250000,
+        labelPos: [-79.4, 35.75],
+        notes: 'Site of Roanoke (1585); permanent Albemarle settlements (1650s). Tuscarora War (1711–15) & Cherokee frontier.',
+        coords: [
+          [-84.2, 36.0], [-81.7, 36.55], [-75.9, 36.55], [-75.5, 35.2], [-77.9, 33.9],
+          [-78.6, 33.9], [-80.8, 35.1], [-83.1, 35.0], [-84.2, 36.0]
+        ]
+      },
+      {
+        id: 'SC',
+        name: 'South Carolina',
+        founded: 1670,
+        pop1776: 160000,
+        labelPos: [-80.9, 33.85],
+        notes: 'Charles Town founded (1670); Indian slave trade & Yamasee War (1715–17) drastically reduced regional nations.',
+        coords: [
+          [-83.1, 35.0], [-80.8, 35.1], [-78.6, 33.9], [-80.8, 32.1], [-82.0, 33.5],
+          [-83.1, 35.0]
+        ]
+      },
+      {
+        id: 'GA',
+        name: 'Georgia',
+        founded: 1733,
+        pop1776: 40000,
+        labelPos: [-83.2, 32.45],
+        notes: 'Savannah founded by Oglethorpe (1733); buffer colony bordering Creek (Muscogee) and Cherokee homelands.',
+        coords: [
+          [-85.5, 35.0], [-83.1, 35.0], [-82.0, 33.5], [-80.8, 32.1], [-81.4, 30.7],
+          [-82.0, 30.4], [-85.0, 30.8], [-85.5, 35.0]
+        ]
+      }
+    ];
+
+    // Major Eastern Indigenous Nation Clusters (Mapped by Geographic Lon/Lat)
+    const regions = [
+      {
+        id: 'abenaki',
+        name: 'Abenaki & Penobscot (Northern New England)',
+        lon: -70.1, lat: 44.5,
+        notes: 'Wabanaki Confederacy across Maine, NH, and Vermont; allied with New France against English expansion.',
+        pop: { 1585: 42000, 1607: 38000, 1650: 14000, 1700: 7500, 1750: 4800, 1776: 3600 }
+      },
+      {
+        id: 'southern_ne',
+        name: 'Wampanoag, Narragansett & Pequot (Southern NE)',
+        lon: -71.75, lat: 41.85,
+        notes: 'Devastated by 1616–19 coastal plague, Pequot War (1637), and King Philip’s War (1675–76).',
+        pop: { 1585: 68000, 1607: 60000, 1650: 14000, 1700: 5200, 1750: 3800, 1776: 3200 }
+      },
+      {
+        id: 'iroquois',
+        name: 'Haudenosaunee / Iroquois Confederacy (NY)',
+        lon: -76.2, lat: 43.1,
+        notes: 'Mohawk, Oneida, Onondaga, Cayuga, Seneca (& Tuscarora after 1722); major diplomatic power in NY.',
+        pop: { 1585: 65000, 1607: 60000, 1650: 32000, 1700: 18000, 1750: 14500, 1776: 12000 }
+      },
+      {
+        id: 'lenape',
+        name: 'Lenape & Susquehannock (PA / NJ / DE)',
+        lon: -76.3, lat: 40.45,
+        notes: 'Delaware & Susquehanna valleys; pushed west into Ohio Country by 18th-c. land treaties & Walking Purchase (1737).',
+        pop: { 1585: 45000, 1607: 40000, 1650: 18000, 1700: 7500, 1750: 4200, 1776: 3000 }
+      },
+      {
+        id: 'powhatan',
+        name: 'Powhatan & Piscataway (Chesapeake VA / MD)',
+        lon: -77.4, lat: 37.9,
+        notes: 'Tsenacommacah Confederacy; suffered severe losses in Anglo-Powhatan Wars (1609–1646) and smallpox.',
+        pop: { 1585: 40000, 1607: 34000, 1650: 10000, 1700: 3500, 1750: 2200, 1776: 1800 }
+      },
+      {
+        id: 'carolina_piedmont',
+        name: 'Tuscarora, Catawba & Coastal Algonquians (NC/SC)',
+        lon: -79.4, lat: 35.0,
+        notes: 'Includes Roanoke/Croatoan descendants, Tuscarora (migrated north after 1713), and Catawba.',
+        pop: { 1585: 90000, 1607: 80000, 1650: 52000, 1700: 26000, 1750: 9500, 1776: 6500 }
+      },
+      {
+        id: 'cherokee_creek',
+        name: 'Cherokee & Muscogee / Creek (Southern Interior)',
+        lon: -83.4, lat: 34.1,
+        notes: 'Populous Appalachian & Georgia interior nations; impacted by Indian slave trade & 1738/1759 smallpox epidemics.',
+        pop: { 1585: 250000, 1607: 215000, 1650: 165000, 1700: 115000, 1750: 58000, 1776: 46000 }
+      }
+    ];
+
+    // Key Historical Sites along the Eastern Seaboard
+    const historicSites = [
+      { name: 'Roanoke Island (1585)', lon: -75.71, lat: 35.89, year: 1585 },
+      { name: 'Jamestown (1607)', lon: -76.78, lat: 37.21, year: 1607 },
+      { name: 'Plymouth (1620)', lon: -70.66, lat: 41.96, year: 1620 },
+      { name: 'New Amsterdam / NY (1624)', lon: -74.01, lat: 40.71, year: 1624 },
+      { name: 'Charles Town (1670)', lon: -79.93, lat: 32.78, year: 1670 },
+      { name: 'Philadelphia (1682)', lon: -75.16, lat: 39.95, year: 1682 },
+      { name: 'Savannah (1733)', lon: -81.09, lat: 32.08, year: 1733 }
+    ];
+
+    // Colonial Population Timeline (13 Colonies Series Z-19)
+    const colonialPopAnchors = {
+      1585: 110,
+      1607: 350,
+      1620: 2300,
+      1640: 26600,
+      1660: 75100,
+      1680: 151500,
+      1700: 250900,
+      1720: 466200,
+      1740: 905600,
+      1760: 1593600,
+      1776: 2500000
+    };
+
+    const eras = [
+      {
+        min: 1585, max: 1606,
+        label: 'Roanoke Expedition & Early Contact',
+        title: '1585–1606: Roanoke Island & Pre-Colony Seaboard',
+        desc: 'England establishes short-lived settlements on Roanoke Island (1585, 1587) among Secotan, Croatoan, and Roanoke Algonquian towns. None of the 13 permanent colonies yet exist, while roughly 600,000 Indigenous people inhabit the Atlantic seaboard and Appalachian interior.'
+      },
+      {
+        min: 1607, max: 1639,
+        label: 'First Permanent Colonies & Coastal Epidemics',
+        title: '1607–1639: Jamestown, Plymouth, New Netherland & Epidemics',
+        desc: 'Virginia (1607), Massachusetts (1620), New Hampshire (1623), New York (1624), Maryland (1634), Rhode Island (1636), Connecticut (1636), and Delaware (1638) take root. Virgin-soil smallpox and measles epidemics (1616–1634) decimate coastal New England and Chesapeake villages.'
+      },
+      {
+        min: 1640, max: 1689,
+        label: 'Middle Colonies & King Philip’s War',
+        title: '1640–1689: Carolina, New Jersey, Pennsylvania & Colonial Wars',
+        desc: 'Twelve of the 13 colonies are established by 1681 as settler numbers pass 150,000. King Philip’s War (1675–1676) shatters Indigenous autonomy in southern New England, while Bacon’s Rebellion (1676) drives violent frontier expansion in Virginia.'
+      },
+      {
+        min: 1690, max: 1753,
+        label: '13 Colonies Complete & Southeastern Displacement',
+        title: '1690–1753: Georgia Founded (1733) & Piedmont Expansion',
+        desc: 'With Georgia’s founding in 1733, all 13 colonies are established and settler population surges past 1 million. The Tuscarora War (1711–15), Yamasee War (1715–17), and 1738 smallpox severely reduce Carolina and Georgia Indigenous populations.'
+      },
+      {
+        min: 1754, max: 1776,
+        label: 'Imperial Conflicts to American Independence',
+        title: '1754–1776: Seven Years’ War to American Independence',
+        desc: 'Following the French and Indian War (1754–1763), colonial settlement continues expanding rapidly across the eastern seaboard. By 1776, 2.5 million colonists live across the 13 colonies while regional Indigenous populations have fallen by over 87% since Roanoke.'
+      }
+    ];
+
+    function interpolateValue(anchors, year) {
+      const years = Object.keys(anchors).map(Number).sort((a, b) => a - b);
+      if (year <= years[0]) return anchors[years[0]];
+      if (year >= years[years.length - 1]) return anchors[years[years.length - 1]];
+      for (let i = 0; i < years.length - 1; i++) {
+        const y1 = years[i];
+        const y2 = years[i + 1];
+        if (year >= y1 && year <= y2) {
+          const t = (year - y1) / (y2 - y1);
+          return Math.round(anchors[y1] + t * (anchors[y2] - anchors[y1]));
+        }
+      }
+      return anchors[years[0]];
+    }
+
+    function formatNum(n) {
+      return n.toLocaleString('en-US');
+    }
+
+    function pointInPolygon(x, y, polyCoords, bounds) {
+      let inside = false;
+      for (let i = 0, j = polyCoords.length - 1; i < polyCoords.length; j = i++) {
+        const [xi, yi] = project(polyCoords[i][0], polyCoords[i][1], bounds);
+        const [xj, yj] = project(polyCoords[j][0], polyCoords[j][1], bounds);
+        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi + 1e-9) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    function drawTextWithHalo(text, x, y, font, fillStyle, align = 'center') {
+      ctx.font = font;
+      ctx.textAlign = align;
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 3.2;
+      ctx.strokeStyle = 'rgba(9, 19, 34, 0.88)';
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = fillStyle;
+      ctx.fillText(text, x, y);
+    }
+
+    function resizeCanvas() {
+      const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawMap();
+    }
+
+    function drawPolygon(coords, bounds, fillStyle, strokeStyle, lineWidth = 1.2, lineDash = []) {
+      ctx.beginPath();
+      coords.forEach(([lon, lat], idx) => {
+        const [px, py] = project(lon, lat, bounds);
+        if (idx === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.closePath();
+      if (fillStyle) {
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+      }
+      if (strokeStyle) {
+        ctx.setLineDash(lineDash);
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    function drawMap() {
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      const bounds = getMapBounds(w, h);
+
+      // Ocean background gradient
+      const oceanGrad = ctx.createLinearGradient(0, 0, w, h);
+      oceanGrad.addColorStop(0, '#091526');
+      oceanGrad.addColorStop(1, '#0d213d');
+      ctx.fillStyle = oceanGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Subtle Latitude/Longitude Graticule Lines
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
+      ctx.lineWidth = 1;
+      for (let lon = -85; lon <= -65; lon += 5) {
+        const [x1, y1] = project(lon, GEO.minLat, bounds);
+        const [x2, y2] = project(lon, GEO.maxLat, bounds);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+      for (let lat = 30; lat <= 45; lat += 5) {
+        const [x1, y1] = project(GEO.minLon, lat, bounds);
+        const [x2, y2] = project(GEO.maxLon, lat, bounds);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+
+      // Draw Surrounding North American Landmass
+      surroundingLandmass.forEach(poly => {
+        drawPolygon(poly, bounds, '#162338', '#263854', 1.2);
+      });
+
+      // Draw Great Lakes
+      greatLakesGeo.forEach(lake => {
+        drawPolygon(lake, bounds, '#0a182b', '#273c5c', 1.1);
+      });
+
+      // Draw Each of the 13 Colonies
+      thirteenColonies.forEach(colony => {
+        const isEstablished = currentYear >= colony.founded;
+        const isHovered = hoveredItem && hoveredItem.type === 'colony' && hoveredItem.data.id === colony.id;
+
+        let fillColor = '#1c2b44';
+        if (isEstablished) {
+          const yearsActive = currentYear - colony.founded;
+          const intensity = Math.min(1, 0.22 + Math.sqrt(yearsActive / 170) * 0.45);
+          fillColor = isHovered
+            ? `rgba(251, 191, 36, ${Math.min(0.85, intensity + 0.2)})`
+            : `rgba(217, 119, 6, ${intensity.toFixed(2)})`;
+        } else if (isHovered) {
+          fillColor = 'rgba(56, 189, 248, 0.22)';
+        }
+
+        const borderColor = showBorders
+          ? (isEstablished ? (isHovered ? '#fde68a' : 'rgba(251, 191, 36, 0.82)') : 'rgba(148, 163, 184, 0.38)')
+          : 'rgba(148, 163, 184, 0.15)';
+        const borderDash = showBorders ? (isEstablished ? [] : [3, 3]) : [];
+        const borderWidth = isHovered ? 2.4 : (isEstablished ? 1.5 : 1);
+
+        drawPolygon(colony.coords, bounds, fillColor, borderColor, borderWidth, borderDash);
+        if (colony.extraCoords) {
+          drawPolygon(colony.extraCoords, bounds, fillColor, borderColor, borderWidth, borderDash);
+        }
+      });
+
+      // Draw Regional Indigenous Population Bubbles (with 1585 Baseline Ghost Rings)
+      const scaleFactor = Math.min(bounds.mapW, bounds.mapH) / 520;
+      regions.forEach(reg => {
+        const currentPop = interpolateValue(reg.pop, currentYear);
+        const initialPop = reg.pop[1585];
+        const [cx, cy] = project(reg.lon, reg.lat, bounds);
+
+        const r = Math.max(7, Math.sqrt(currentPop / 420) * 2.15 * scaleFactor);
+        const initR = Math.max(7, Math.sqrt(initialPop / 420) * 2.15 * scaleFactor);
+
+        reg._screenX = cx;
+        reg._screenY = cy;
+        reg._screenR = r;
+        reg._currentPop = currentPop;
+
+        const isHovered = hoveredItem && hoveredItem.type === 'region' && hoveredItem.data.id === reg.id;
+
+        if (currentYear > 1585) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, initR, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.36)';
+          ctx.setLineDash([3, 3]);
+          ctx.lineWidth = 1.1;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        const grad = ctx.createRadialGradient(cx, cy, 1, cx, cy, r);
+        grad.addColorStop(0, 'rgba(56, 189, 248, 0.92)');
+        grad.addColorStop(1, 'rgba(2, 132, 199, 0.48)');
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.strokeStyle = isHovered ? '#ffffff' : '#7dd3fc';
+        ctx.lineWidth = isHovered ? 2.5 : 1.4;
+        ctx.stroke();
+
+        drawTextWithHalo(
+          formatNum(currentPop),
+          cx,
+          cy + r + 12,
+          '700 11px sans-serif',
+          '#e0f2fe',
+          'center'
+        );
+      });
+
+      // Draw Colony Labels on Top with Leader Lines for Small Coastal Colonies (RI, CT, NJ, DE)
+      if (showLabels) {
+        thirteenColonies.forEach(colony => {
+          const isEstablished = currentYear >= colony.founded;
+          const [lx, ly] = project(colony.labelPos[0], colony.labelPos[1], bounds);
+          const font = isEstablished ? '700 11.5px sans-serif' : '600 10.5px sans-serif';
+          const color = isEstablished ? '#fef3c7' : '#cbd5e1';
+
+          if (colony.leaderFrom) {
+            const [fx, fy] = project(colony.leaderFrom[0], colony.leaderFrom[1], bounds);
+            ctx.beginPath();
+            ctx.moveTo(fx, fy);
+            ctx.lineTo(lx - 4, ly - 3);
+            ctx.strokeStyle = isEstablished ? 'rgba(253, 230, 138, 0.7)' : 'rgba(148, 163, 184, 0.55)';
+            ctx.lineWidth = 1.1;
+            ctx.stroke();
+            drawTextWithHalo(colony.shortName || colony.name, lx, ly, font, color, 'left');
+          } else {
+            drawTextWithHalo(colony.shortName || colony.name, lx, ly, font, color, 'center');
+          }
+
+          if (colony.secondLabelPos) {
+            const [lx2, ly2] = project(colony.secondLabelPos[0], colony.secondLabelPos[1], bounds);
+            drawTextWithHalo(colony.secondLabelText, lx2, ly2, font, color, 'center');
+          }
+        });
+      }
+
+      // Draw Historic Coastal Settlement Sites
+      if (showSites) {
+        historicSites.forEach(site => {
+          if (currentYear >= site.year) {
+            const [sx, sy] = project(site.lon, site.lat, bounds);
+            const isRoanoke = site.year === 1585;
+
+            ctx.beginPath();
+            ctx.arc(sx, sy, isRoanoke ? 5 : 4, 0, Math.PI * 2);
+            ctx.fillStyle = isRoanoke ? '#f43f5e' : '#fef08a';
+            ctx.fill();
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.3;
+            ctx.stroke();
+
+            drawTextWithHalo(
+              site.name,
+              sx + 8,
+              sy + 4,
+              isRoanoke ? '700 11px sans-serif' : '600 10.5px sans-serif',
+              isRoanoke ? '#fda4af' : '#fef9c3',
+              'left'
+            );
+          }
+        });
+      }
+
+      // Ocean Title Watermark
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.24)';
+      ctx.font = 'italic 700 14px Georgia, serif';
+      ctx.textAlign = 'center';
+      const [ax, ay] = project(-69.5, 33.2, bounds);
+      ctx.fillText('ATLANTIC OCEAN', ax, ay);
+    }
+
+    function updateDashboard() {
+      yearDisplay.textContent = currentYear;
+      yearSlider.value = currentYear;
+
+      const activeEra = eras.find(e => currentYear >= e.min && currentYear <= e.max) || eras[0];
+      eraLabel.textContent = activeEra.label;
+      document.getElementById('eraTitle').textContent = activeEra.title;
+      document.getElementById('eraDesc').textContent = activeEra.desc;
+
+      document.querySelectorAll('.milestone-btn').forEach(btn => {
+        const y = Number(btn.dataset.year);
+        btn.classList.toggle('active', Math.abs(currentYear - y) <= 4);
+      });
+
+      let totalInd1585 = 0;
+      let totalIndNow = 0;
+      regions.forEach(reg => {
+        totalInd1585 += reg.pop[1585];
+        totalIndNow += interpolateValue(reg.pop, currentYear);
+      });
+
+      const lossPct = (((totalInd1585 - totalIndNow) / totalInd1585) * 100).toFixed(1);
+      const colNow = interpolateValue(colonialPopAnchors, currentYear);
+      const establishedColonies = thirteenColonies
+        .filter(c => currentYear >= c.founded)
+        .sort((a, b) => b.founded - a.founded);
+
+      document.getElementById('statEastInd').textContent = '~' + formatNum(totalIndNow);
+      document.getElementById('statEastChange').textContent =
+        currentYear === 1585 ? '1585 Pre-settlement baseline' : `Down from ~${formatNum(totalInd1585)}`;
+
+      document.getElementById('statDeclinePct').textContent = `-${lossPct}%`;
+
+      document.getElementById('statColonial').textContent = '~' + formatNum(colNow);
+      document.getElementById('statColSub').textContent =
+        currentYear < 1607 ? 'Roanoke garrison & outposts' : '13 Colonies settler total';
+
+      document.getElementById('statColCount').textContent = `${establishedColonies.length} of 13`;
+      document.getElementById('statColLatest').textContent =
+        establishedColonies.length === 0
+          ? 'First permanent: VA (1607)'
+          : `Latest: ${establishedColonies[0].shortName || establishedColonies[0].name} (${establishedColonies[0].founded})`;
+
+      const barsContainer = document.getElementById('regionBarsContainer');
+      barsContainer.innerHTML = '';
+      regions.forEach(reg => {
+        const now = interpolateValue(reg.pop, currentYear);
+        const pct = Math.round((now / reg.pop[1585]) * 100);
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        row.innerHTML = `
+          <div class="bar-header">
+            <span>${reg.name.split(' (')[0]}</span>
+            <span>${formatNum(now)} (${pct}%)</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width: ${pct}%;"></div>
+          </div>
+        `;
+        barsContainer.appendChild(row);
+      });
+
+      drawMap();
+    }
+
+    function animate(timestamp) {
+      if (!isPlaying) return;
+      if (timestamp - lastFrameTime > (140 / speedMultiplier)) {
+        lastFrameTime = timestamp;
+        if (currentYear < 1776) {
+          currentYear++;
+          updateDashboard();
+        } else {
+          isPlaying = false;
+          playPauseBtn.textContent = '▶ Replay Time-Lapse';
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+    playPauseBtn.addEventListener('click', () => {
+      if (currentYear >= 1776) currentYear = 1585;
+      isPlaying = !isPlaying;
+      playPauseBtn.textContent = isPlaying ? '❚❚ Pause' : '▶ Play Time-Lapse';
+      if (isPlaying) {
+        lastFrameTime = performance.now();
+        requestAnimationFrame(animate);
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      isPlaying = false;
+      playPauseBtn.textContent = '▶ Play Time-Lapse';
+      currentYear = 1585;
+      updateDashboard();
+    });
+
+    speedBtn.addEventListener('click', () => {
+      speedMultiplier = speedMultiplier === 1 ? 2 : speedMultiplier === 2 ? 4 : 1;
+      speedBtn.textContent = `Speed: ${speedMultiplier}x`;
+    });
+
+    yearSlider.addEventListener('input', (e) => {
+      currentYear = Number(e.target.value);
+      updateDashboard();
+    });
+
+    document.querySelectorAll('.milestone-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        isPlaying = false;
+        playPauseBtn.textContent = '▶ Play Time-Lapse';
+        currentYear = Number(btn.dataset.year);
+        updateDashboard();
+      });
+    });
+
+    function handlePointer(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const mx = clientX - rect.left;
+      const my = clientY - rect.top;
+      const bounds = getMapBounds(rect.width, rect.height);
+
+      for (const reg of regions) {
+        const dx = mx - reg._screenX;
+        const dy = my - reg._screenY;
+        if (Math.hypot(dx, dy) <= Math.max(reg._screenR, 15)) {
+          hoveredItem = { type: 'region', data: reg };
+          const pct = Math.round((reg._currentPop / reg.pop[1585]) * 100);
+          tooltip.innerHTML = `
+            <h4>${reg.name}</h4>
+            <p><span>1585 Est.:</span> <span class="val">${formatNum(reg.pop[1585])}</span></p>
+            <p><span>${currentYear} Est.:</span> <span class="val">${formatNum(reg._currentPop)} (${pct}%)</span></p>
+            <p style="margin-top:0.35rem; font-size:0.74rem; color:#94a3b8; display:block;">${reg.notes}</p>
+          `;
+          tooltip.style.left = `${Math.min(rect.width - 135, Math.max(135, mx))}px`;
+          tooltip.style.top = `${Math.max(105, my - 10)}px`;
+          tooltip.style.opacity = '1';
+          drawMap();
+          return;
+        }
+      }
+
+      for (const col of thirteenColonies) {
+        const inMain = pointInPolygon(mx, my, col.coords, bounds);
+        const inExtra = col.extraCoords ? pointInPolygon(mx, my, col.extraCoords, bounds) : false;
+        if (inMain || inExtra) {
+          hoveredItem = { type: 'colony', data: col };
+          const isEst = currentYear >= col.founded;
+          const estColPop = isEst
+            ? Math.round(col.pop1776 * Math.pow((currentYear - col.founded + 1) / (1776 - col.founded + 1), 1.45))
+            : 0;
+          tooltip.innerHTML = `
+            <h4>Colony of ${col.name}</h4>
+            <p><span>Status (${currentYear}):</span> <span class="val">${isEst ? 'Established' : 'Not Yet Founded'}</span></p>
+            <p><span>Founded:</span> <span class="val">${col.founded}</span></p>
+            <p><span>Est. Settlers:</span> <span class="val">${isEst ? '~' + formatNum(estColPop) : '0'}</span></p>
+            <p style="margin-top:0.35rem; font-size:0.74rem; color:#94a3b8; display:block;">${col.notes}</p>
+          `;
+          tooltip.style.left = `${Math.min(rect.width - 135, Math.max(135, mx))}px`;
+          tooltip.style.top = `${Math.max(105, my - 10)}px`;
+          tooltip.style.opacity = '1';
+          drawMap();
+          return;
+        }
+      }
+
+      hoveredItem = null;
+      tooltip.style.opacity = '0';
+      drawMap();
+    }
+
+    canvas.addEventListener('mousemove', (e) => handlePointer(e.clientX, e.clientY));
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 0) {
+        handlePointer(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    canvas.addEventListener('mouseleave', () => {
+      hoveredItem = null;
+      tooltip.style.opacity = '0';
+      drawMap();
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    updateDashboard();
+  </script>
+</body>
+</html>
